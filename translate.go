@@ -70,12 +70,15 @@ func Translate(w http.ResponseWriter, r *http.Request) {
 			r.English = word
 			r.Hanzi = translateWord(ctx, *client, word, "zh")
 			r.Pinyin = pinyin.LazyPinyin(r.Hanzi, a)
-		} else if baseLang == "zh-CN" {
+		} else if baseLang == "zh-CN" || baseLang == "zh-TW" {
 			r.Hanzi = word
 			r.Pinyin = pinyin.LazyPinyin(word, a)
 			r.English = strings.ToLower(translateWord(ctx, *client, word, "en"))
 		} else {
-			log.Fatalf("Unsupported language")
+			log.Printf("Unsupported language")
+			r.Hanzi = word
+			r.Pinyin = pinyin.LazyPinyin(r.Hanzi, a)
+			r.English = word
 		}
 
 		out = append(out, r)
