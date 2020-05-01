@@ -33,5 +33,5 @@ jobs:
 
       - name: Test
         run: |
-          echo $(base64 --decode ${GCP_CREDENTIALS }) > gcpkey.json
+          echo $(base64 --decode ${GCP_CREDENTIALS}) > gcpkey.json
           go test -v .
