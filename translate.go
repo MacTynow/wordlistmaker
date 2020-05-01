@@ -13,10 +13,16 @@ import (
 	"golang.org/x/text/language"
 )
 
+type dataInput struct {
+	Words        []string `json:"words"`
+	TargetLang   string   `json:"target"`
+	Romanization bool     `json:"romanization"`
+}
+
 type result struct {
-	English string
-	Hanzi   string
-	Pinyin  []string
+	English      string
+	Translation  string
+	Romanization string
 }
 
 func translateWord(ctx context.Context, client translate.Client, word string, targetLang string) string {
@@ -29,28 +35,16 @@ func translateWord(ctx context.Context, client translate.Client, word string, ta
 	return translations[0].Text
 }
 
-// Translate gets translation from api service
-func Translate(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Words []string `json:"words"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		log.Fatalf("Failed to parse data: %v", err)
-	}
-	if len(data.Words) == 0 {
-		log.Fatal("Data is empty")
-	}
-
+func processWordList(data dataInput) []result {
 	ctx := context.Background()
-
 	// Creates a client.
 	client, err := translate.NewClient(ctx)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	a := pinyin.NewArgs()
-	a.Style = pinyin.Tone
+	pinyinArgs := pinyin.NewArgs()
+	pinyinArgs.Style = pinyin.Tone
 	out := []result{}
 
 	for _, word := range data.Words {
@@ -68,23 +62,55 @@ func Translate(w http.ResponseWriter, r *http.Request) {
 
 		if baseLang == "en" {
 			r.English = word
-			r.Hanzi = translateWord(ctx, *client, word, "zh")
-			r.Pinyin = pinyin.LazyPinyin(r.Hanzi, a)
-		} else if baseLang == "zh-CN" || baseLang == "zh-TW" {
-			r.Hanzi = word
-			r.Pinyin = pinyin.LazyPinyin(word, a)
+			r.Translation = translateWord(ctx, *client, word, data.TargetLang)
+			r.Romanization = strings.Join(pinyin.LazyPinyin(r.Translation, pinyinArgs), " ")
+		} else if baseLang == data.TargetLang {
 			r.English = strings.ToLower(translateWord(ctx, *client, word, "en"))
+			r.Translation = word
+			r.Romanization = strings.Join(pinyin.LazyPinyin(word, pinyinArgs), " ")
 		} else {
 			log.Printf("Unsupported language")
-			r.Hanzi = word
-			r.Pinyin = pinyin.LazyPinyin(r.Hanzi, a)
+			r.Translation = word
+			r.Romanization = strings.Join(pinyin.LazyPinyin(r.Translation, pinyinArgs), " ")
 			r.English = word
 		}
 
 		out = append(out, r)
 	}
 
-	for _, o := range out {
-		fmt.Fprintf(w, "%v, %v, %v\n", o.English, o.Hanzi, strings.Join(o.Pinyin, " "))
+	return out
+}
+
+// Translate gets translation from api service
+func Translate(w http.ResponseWriter, r *http.Request) {
+	data := dataInput{
+		TargetLang:   "zh-CN",
+		Romanization: true,
 	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		log.Fatalf("Failed to parse data: %v", err)
+	}
+	if len(data.Words) == 0 {
+		log.Fatal("Data is empty")
+	}
+
+	out := processWordList(data)
+
+	for _, o := range out {
+		if data.Romanization {
+			fmt.Fprintf(w, "%v, %v, %v\n", o.English, o.Translation, o.Romanization)
+		} else {
+			fmt.Fprintf(w, "%v, %v\n", o.English, o.Translation)
+		}
+	}
+
+	// csvWriter := csv.NewWriter(os.Stdout)
+
+	// for _, o := range out {
+	// 	if err := csvWriter.Write([]string{o.English, o.Translation, o.Romanization}); err != nil {
+	// 		log.Fatalln("error writing record to csv:", err)
+	// 	}
+	// }
+
+	// csvWriter.Flush()
 }

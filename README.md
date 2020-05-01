@@ -1,6 +1,6 @@
 # Wordlistmaker
 
-Google cloud function to translate a list of english and chinese word and returns a csv with english, hanzi and pinyn.
+Google cloud function to translate a list of english and word in another language and returns a csv with english, target language and (optional) romanization.
 
 ## Usage
 

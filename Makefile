@@ -5,4 +5,4 @@ clean:
 	gcloud functions delete Translate --region=asia-northeast1
 
 test:
-	go test github.com/mactynow/wordlistmaker
+	go test -cover github.com/mactynow/wordlistmaker

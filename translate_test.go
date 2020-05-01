@@ -14,6 +14,7 @@ func TestTranslate(t *testing.T) {
 		{body: `{"words": ["hello"]}`, want: "hello, 你好, nǐ hǎo\n"},
 		{body: `{"words": ["hello", "my friend"]}`, want: "hello, 你好, nǐ hǎo\nmy friend, 我的朋友, wǒ de péng yǒu\n"},
 		{body: `{"words": ["hello", "你好"]}`, want: "hello, 你好, nǐ hǎo\nhello there, 你好, nǐ hǎo\n"},
+		{body: `{"target": "ko", "romanization": false, "words": ["hello", "안녕"]}`, want: "hello, 여보세요\nhi, 안녕\n"},
 	}
 
 	for _, test := range tests {
